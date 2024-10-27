@@ -44,7 +44,7 @@ extern "C"
 		static double vse_ref,vsh_ref,vse0_ref,vsh0_ref;
 		
 		// Bus Control - Simple PI 
-		static float  vCs_ref = 525.; 							// Reference Bus Voltage
+		static float  vCs_ref = 465.; 							// Reference Bus Voltage
 		static double vCs_error = 0.; 							// Error Bus Voltage
 		static double Ig_ref = 0.;						    	// Reference Current Amplitude 
 		static double Ivc_error = 0., Pvc_error = 0., Ig0 = 3.; // PI Error
@@ -81,7 +81,7 @@ extern "C"
 		static double vC2L_ref = (vC2L1s_ref+vC2L2s_ref)/2;
 		static double vC2L1s_error = 0., vC2L2s_error = 0.;
 		static double v2L1_ref = 0., v2L2_ref = 0., V2L1_ref = 0., V2L2_ref = 0.;
-		static double kpvl = 10, kivl = 15.; // Same gains for both PIs
+		static double kpvl = 1, kivl = 100.; // Same gains for both PIs
 		static double Iv2L1_error = 0, Iv2L2_error = 0, Pv2L1_error = 0, Pv2L2_error = 0; // Errors integral and proportional
 		static double P2L1 = 0, P2L2 = 0, Pltot = 0; // 2L Bus Power
 		static double iC2L1s = 0, iC2L2s = 0; // 2L Bus Current
@@ -93,6 +93,8 @@ extern "C"
 		static double kpil = 1.0, kiil = 10; // Same gains for both PIs
 		static double Iil_error = 0, Pil_error = 0; // Errors integral and proportional
 		static int sign = 0;
+		
+		double teste1;
 		
 		///////////////////////////////////
 		// Input
@@ -165,6 +167,7 @@ extern "C"
 			
 			Ig_ref = Pvc_error + Ivc_error + Ig0; 		// PI Out - Grid Current Amplitude
 			
+			
 			if(Ig_ref > 30) Ig_ref = 30;
 			if(Ig_ref < -30) Ig_ref = -30;
 			
@@ -174,10 +177,11 @@ extern "C"
 			
 			// ######### Grid Current Control - Start ######### 
 			ig_ref = Ig_ref*sin(theta);
+			//ig_ref = Ig0*sin(theta);
 			ig_error = (igs - ig_ref);
 			
 			// Cut Frequency
-			kis = 1000.;//150.;1000.;
+			kis = 100.;//150.;1000.;
 			kps = 10.;//1.;10.;
 			
 			// Constants
@@ -188,46 +192,40 @@ extern "C"
 			F21s = -wg*sin(thetasw_ref);
 			F22s = F11s;
 			H11s =  2.0*kis*sin(thetasw_ref)/wg;
-			H21s = (cos(thetasw_ref)-1.0)*2.0*kis;
+			H21s = (cos(thetasw_ref)-1.0)*2.0*kis;		
 			
-			F1 = F11s;
-			F2 = F12s;
-			F3 = 2*kis*F12s;
-			F4 = wg*sin(thetasw_ref);
-			F5 = F11s;
-			F6 = (cos(thetasw_ref)-1)*2*kis;
-			ei1a = ei1;
-			xaa1 = xa1;
-			ei1 = -ig_error;
-			xa1 = F1*xaa1+F2*xb1+F3*ei1a;
-			xb1 = F4*xaa1+F5*xb1+F6*ei1a;
-			if(xa1>vCs_ref)xa1=vCs_ref;
-			if(xa1<-vCs_ref)xa1=-vCs_ref;
-			vsh_ref = xa1 + kps*ei1;
-			vsh_ref = 110*sqrt(2)*sin(theta);
-			
-			/*
 			// Controller 
 			X1ccs = X1cs;  
 			X2ccs = X2cs;  
 			X1cs = F11s*X1ccs + F12s*X2ccs + H11s*ig_error;
 			X2cs = F21s*X1ccs + F22s*X2ccs + H21s*ig_error;
-			vg_ref = X1cs + ig_error*kps ;  // Output PI
-			//vg_ref = 109.5461*sqrt(2)*sin(theta-0.1598);
+			teste1 = X1cs + ig_error*kps + egs ;  // Output PI
+			vsh_ref = egs;
 			
 			
 			// Saturator
-			if (vg_ref >= 1.5*vCs_ref)
+			if (vsh_ref >= 1.5*vCs_ref)
 		    {
 		        X1cs = 1.5*vCs_ref;
-		        vg_ref = 1.5*vCs_ref;
+		        vsh_ref = 1.5*vCs_ref;
 		    }
-		    else if (vg_ref <= -1.5*vCs_ref)
+		    else if (vsh_ref <= -1.5*vCs_ref)
 		    {
 	            X1cs = -1.5*vCs_ref;
-	            vg_ref = -1.5*vCs_ref;
+	            vsh_ref = -1.5*vCs_ref;
 		    }
-		    */
+		    
+		    if (teste1 >= 1.5*vCs_ref)
+		    {
+		        X1cs = 1.5*vCs_ref;
+		        teste1 = 1.5*vCs_ref;
+		    }
+		    else if (teste1 <= -1.5*vCs_ref)
+		    {
+	            X1cs = -1.5*vCs_ref;
+	            teste1 = -1.5*vCs_ref;
+		    }
+		    
 		    
 		    /*
 			// ######### Grid Current Control - End ######### 
@@ -357,12 +355,14 @@ extern "C"
 			vl0_ref = (vu + vl_ref)/vCs_ref + 0.5;
 			vg0_ref = (vu + vg_ref)/vCs_ref + 0.5;
 			*/
+			//vsh_ref = 110*sqrt(2)*sin(theta);
 			vl_ref = 110*sqrt(2)*sin(theta);
 			vse_ref = egs - vl_ref;
 			
-			vse0_ref = -vse_ref;
+			vse0_ref = vse_ref;
 			vsh0_ref = vsh_ref;
 		}
+		
 		
 		
 		if(vsh0_ref   >= vtris) qg = 1.0; else qg = 0.0;
@@ -393,10 +393,12 @@ extern "C"
 		///////////////////////////////////
 		// Output
 		
-		out[0]  =  qg;
-		out[1]  =  ql;
+		out[0] = qg;
+		out[1] = ql;
 		out[2] = vsh_ref;
 		out[3] = vse_ref;
+		out[4] = ig_ref;
+		out[5] = teste1;
 		/*
 		out[0]  =  qg;
 		out[1]  =  ql;
